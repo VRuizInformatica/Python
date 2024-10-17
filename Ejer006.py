@@ -1,4 +1,4 @@
-respuesta = input("Soy mago, voy a cambiar la primera letra de la palabra que me pases por la última\n")
+respuesta = input("Soy mago, te voy a decir cual es la primera letra y la ultima de la palabra que me pases\n")
 
 if len(respuesta) > 1:
     primero = respuesta[0]
