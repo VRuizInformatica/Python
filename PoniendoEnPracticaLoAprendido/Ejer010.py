@@ -1,3 +1,5 @@
+# Programa que dice la palabra mas larga y la mas corta de una tabla
+
 def masYmenos(tabla):
     masLargo = tabla[0]
     masCorto = tabla[0]

@@ -1,3 +1,5 @@
+# Programa que busca un elemento en una tabla
+
 tabla = input("Pásame una tabla (separada por comas) y comprobaré si el elemento se encuentra en ella y en qué posición: \n").split(",")
 
 cadena = input("Pásame lo que quieras que encuentre en la tabla: \n")

@@ -1,3 +1,5 @@
+# Programa que simula una cuenta bancaria
+
 class Cuenta:
     def __init__(self, titular, cantidad=0.0):
         self.titular = titular

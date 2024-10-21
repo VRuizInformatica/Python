@@ -1,3 +1,5 @@
+# Programa que recibe dos numeros y una operacion a realizar, devuelve el resultado de la operacion
+
 suma = 0
 resta = 0
 multiplicacion = 0

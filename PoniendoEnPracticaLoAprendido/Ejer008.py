@@ -1,3 +1,5 @@
+# Programa que suma los numeros de una tabla
+
 def suma(tablaDef):
     resultado = 0
     for num in (tablaDef):

@@ -1,3 +1,5 @@
+# Programa que evita que el usuario escriba la palabra "aaa"
+
 respuesta = input("No me gusta nada 'aaa' asi que ni se te ocurra escribirmelo \n")
 
 cadenaDelmiedo = "aaa"

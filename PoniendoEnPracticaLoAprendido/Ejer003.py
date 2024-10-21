@@ -1,6 +1,6 @@
 import random
 
-#Description: Juego de adivinar un numero aleatorio entre 0 y 20 con 5 intentos
+# Juego de adivinar un numero aleatorio entre 0 y 20 con 5 intentos
 
 numeroGanador = (random.randint(0,20))
 intentos = 5

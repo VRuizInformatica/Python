@@ -1,3 +1,5 @@
+# Programa que dice la primera y la ultima letra de una palabra
+
 respuesta = input("Soy mago, te voy a decir cual es la primera letra y la ultima de la palabra que me pases\n")
 
 if len(respuesta) > 1:

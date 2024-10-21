@@ -1,4 +1,4 @@
-# Description: Crea un programa que pida al usuario 10 números enteros, los almacene en una lista y luego muestre cuántos de esos números son mayores que 0, cuántos menores que 0 y cuántos iguales a 0.
+# Crea un programa que pida al usuario 10 números enteros, los almacene en una lista y luego muestre cuántos de esos números son mayores que 0, cuántos menores que 0 y cuántos iguales a 0.
 
 contadorCeros = 0
 contadorMayores = 0

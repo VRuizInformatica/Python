@@ -1,3 +1,5 @@
+# Programa que cuenta la longitud de una cadena de texto ingresada por el usuario
+
 respuesta = input("Soy un contador de cadenas de texto pasame una frase y contare sus caracteres \n")
 
 longitud = 0

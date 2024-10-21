@@ -1,3 +1,5 @@
+# Programa que simula una matriz
+
 class Matriz:
 
     mi_matriz = Matriz(3, 3)
