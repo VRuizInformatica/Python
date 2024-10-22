@@ -1,28 +1,39 @@
 # Programa que recibe dos numeros y una operacion a realizar, devuelve el resultado de la operacion
 
-suma = 0
-resta = 0
-multiplicacion = 0
-division = 0
-
-respuesta = input("Que operacion quieres hacer? (Suma, Resta, Multiplicacion, Division): \n").lower()
-num1 = int(input("Dame el primer numero: \n"))
-num2 = int(input("Dame el segundo numero: \n"))
-
-def opera1(respuesta, num1, num2):
-    if respuesta == 'suma':
-        suma = num1 + num2
-        print(f"El resultado de la operacion es: {suma}")
-    elif respuesta == 'resta':
-        resta = num1 - num2
-        print(f"El resultado de la operacion es: {resta}")
-    elif respuesta == 'multiplicacion':
-        multiplicacion = num1 * num2
-        print(f"El resultado de la operacion es: {multiplicacion}")
-    elif respuesta == 'division':
-        division = num1 / num2
-        print(f"El resultado de la operacion es: {division}")
+def calculadora(respuesta, uno, dos):
+    resultado=0
+    if respuesta == "sumar":
+        resultado = uno + dos
+    elif respuesta == "restar":
+        resultado = uno - dos
+    elif respuesta == "multiplicar":
+        resultado = uno * dos
+    elif respuesta == "dividir":
+        resultado = uno / dos
     else:
-        print("Operacion no valida")
-    
-opera1(respuesta, num1, num2)
+        resultado = uno % dos
+    print(f"El resultado de la operacion es {resultado}")
+
+listaAcceso = ["sumar", "restar", "multiplicar", "dividir", "resto"]
+
+respuesta = input("Buenos dias soy una calculadora, Que operacion desea hacer hoy? (sumar, restar, multiplicar, dividir, resto)\n").lower()
+
+if respuesta in listaAcceso:
+
+    uno = int(input(f"Perfecto que numero deseas {respuesta}?\n"))
+
+    if respuesta == "sumar":
+        dos = int(input(f"Que numero desea sumarle a {uno}?\n"))
+    elif respuesta == "restar":
+        dos = int(input(f"Que numero desea restarle a {uno}?\n"))
+    elif respuesta == "multiplicar":
+        dos = int(input(f"Por que numero desea multiplicar {uno}?\n"))
+    elif respuesta == "dividir":
+        dos = int(input(f"Por que numero desea dividir {uno}?\n"))
+    else:
+        dos = int(input(f"Por que numero desea dividir {uno} para hayar su resto?\n"))
+
+    calculadora(respuesta, uno , dos)
+
+else:
+    print("Lo lamento pero no comprendo su mensaje recuerde introducir solo una de estas opciones (sumar, restar, multiplicar, dividir, resto)")
