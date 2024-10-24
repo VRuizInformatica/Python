@@ -31,7 +31,10 @@ def click(boton):
             resultado.delete(0, tk.END)
             resultado.insert(0, "Error")
     else:
-        resultado.insert(tk.END, boton)
+        if boton == '0' and resultado.get() == '':
+            resultado.insert(tk.END, '0.')
+        else:
+            resultado.insert(tk.END, boton)
 
 # Función para limpiar la entrada
 def clear():
