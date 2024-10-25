@@ -13,6 +13,8 @@ def masYmenos(tabla):
     print(f"Esta es la palabra mas larga: {masLargo} con {len(masLargo)}")
     print(f"Esta es la palabra mas corta: {masCorto} con {len(masCorto)}")
 
-tabla = input("Pasame una tabla de nombres: " ).split(",")
-
-masYmenos(tabla)
+tabla = input("Pasame una tabla de nombres: " )
+tabla = tabla.replace("[", "")
+tabla = tabla.replace("]", "")
+tablaDef = tabla.split(",")
+masYmenos(tablaDef)
