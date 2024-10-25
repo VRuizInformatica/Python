@@ -6,7 +6,7 @@ import random
 numeroGanador = (random.randint(0,20))
 intentos = 5
 
-print("Buenisimos dias, hoy vas a jugar a !ADIVINA MI NUMERITO¡, el numero a adivinar esta entre 0 y 20")
+print("Buenisimos dias, hoy vas a jugar a !ADIVINA MI NUMERITO¡, ")
 respuestaSINO = input("Te apetece jugar? (si/no)\n").lower()
 
 if respuestaSINO == "si":
