@@ -22,7 +22,6 @@ def evaluate_expression(expression):
             if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
                 expression = f"({parts[0]}/100)*{parts[1]}"
         
-        # Ejecuta la expresión evaluada y guarda en historial
         result = str(eval(expression))
         con = sqlite3.connect('Historial.db')
         cur = con.cursor()
@@ -55,7 +54,7 @@ def handle_button_click(button):
             resultado.delete(0, tk.END)
             resultado.insert(0, "Error")
     elif button == '^':
-        resultado.insert(tk.END, '**')  # Inserta el operador de potenciación
+        resultado.insert(tk.END, '**')
     else:
         if button == '0':
             if current_text == '' or current_text[-1] in ['+', '-', '*', '/']:
