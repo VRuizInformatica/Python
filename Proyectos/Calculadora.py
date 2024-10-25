@@ -17,6 +17,12 @@ TITLE_COLOR = "#4B0082"
 
 def evaluate_expression(expression):
     try:
+        if '%' in expression:
+            parts = expression.split('%')
+            if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                expression = f"({parts[0]}/100)*{parts[1]}"
+        
+        # Ejecuta la expresión evaluada y guarda en historial
         result = str(eval(expression))
         con = sqlite3.connect('Historial.db')
         cur = con.cursor()
@@ -28,6 +34,7 @@ def evaluate_expression(expression):
         return result
     except Exception:
         return "Error"
+
 
 
 def handle_button_click(button):
