@@ -1,27 +1,34 @@
 # Programa que simula una calculadora (En desarrollo)
 
 import tkinter as tk
+import sqlite3
+con = sqlite3.connect('Historial.db')
+cur = con.cursor()
+cur.execute('''CREATE TABLE IF NOT EXISTS historial (id INTEGER PRIMARY KEY AUTOINCREMENT, operacion TEXT, resultado TEXT)''')
+con.commit()
 
-BG_COLOR = "#6A5ACD"
+BG_COLOR = "#7F00FF"
 ENTRY_BG = "#E6E6FA"
 BUTTON_BG = "#8A2BE2"
 BUTTON_FG = "#FFFFFF"
-FONT = ('Arial', 18)
-INSTRUCTION_FONT = ('Arial', 12, 'bold')
+FONT = ('Sans', 18)
+INSTRUCTION_FONT = ('Arial', 12)
 TITLE_COLOR = "#4B0082"
 
 def evaluate_expression(expression):
     try:
-        if '%' in expression:
-            parts = expression.split('%')
-            if len(parts) == 2:
-                percentage = float(parts[0])
-                total = float(parts[1])
-                return str((percentage / 100) * total)
-        else:
-            return str(eval(expression))
+        result = str(eval(expression))
+        con = sqlite3.connect('Historial.db')
+        cur = con.cursor()
+        
+        cur.execute("INSERT INTO historial (operacion, resultado) VALUES (?, ?)", (expression, result))
+        con.commit()
+        con.close()
+
+        return result
     except Exception:
         return "Error"
+
 
 def handle_button_click(button):
     current_text = resultado.get()
@@ -40,6 +47,8 @@ def handle_button_click(button):
         except Exception:
             resultado.delete(0, tk.END)
             resultado.insert(0, "Error")
+    elif button == '^':
+        resultado.insert(tk.END, '**')  # Inserta el operador de potenciación
     else:
         if button == '0':
             if current_text == '' or current_text[-1] in ['+', '-', '*', '/']:
@@ -58,6 +67,12 @@ def handle_button_click(button):
 def clear():
     resultado.delete(0, tk.END)
 
+def delete_last_character():
+    current_text = resultado.get()
+    resultado.delete(0, tk.END)
+    resultado.insert(0, current_text[:-1])
+
+# De momento no pongo boton ya que no le encuentro un hueco =)
 def show_instructions():
     instrucciones_ventana = tk.Toplevel(root)
     instrucciones_ventana.title("Instrucciones")
@@ -84,19 +99,34 @@ def show_instructions():
     instrucciones_ventana.update_idletasks()
     instrucciones_ventana.minsize(300, 200)
 
+def show_history():
+    historial_ventana = tk.Toplevel(root)
+    historial_ventana.title("Historial de Operaciones")
+    con = sqlite3.connect('Historial.db')
+    cur = con.cursor()
+    
+    cur.execute("SELECT operacion, resultado FROM historial")
+    rows = cur.fetchall()
+    con.close()
+    
+    for row in rows:
+        tk.Label(historial_ventana, text=f"{row[0]} = {row[1]}", font=INSTRUCTION_FONT, fg=TITLE_COLOR).pack(anchor='w', padx=10)
+
+    historial_ventana.update_idletasks()
+    historial_ventana.minsize(300, 200)
+
+
 root = tk.Tk()
 root.title("Calculadora")
 root.configure(bg=BG_COLOR)
 
-resultado = tk.Entry(root, width=16, font=('Arial', 24), borderwidth=2, relief="groove", bg=ENTRY_BG, fg="#000000")
-resultado.grid(row=0, column=0, columnspan=4, padx=10, pady=10)
+resultado = tk.Entry(root, width=16, font=('Arial', 24), borderwidth=2, relief="groove", bg=ENTRY_BG, fg="#4B0082")
+resultado.grid(row=0, column=0, columnspan=3, padx=10, pady=10)
 
-buttons = ['C', '7', '8', '9', '/', '4', '5', '6', '*', '1', '2', '3', '-', '0', '.', '+', '%', '√']
+tk.Button(root, text="Historial", width=7, height=2, command=show_history, bg=BUTTON_BG, fg=BUTTON_FG, font=FONT).grid(row=0, column=3, padx=5, pady=5)
+
+buttons = ['C', '^', '%', '√', '+', '7', '8', '9', '-', '4', '5', '6', '*', '1', '2', '3', '/', '0','.','=']
 for i, button in enumerate(buttons):
     tk.Button(root, text=button, width=7, height=3, command=lambda b=button: handle_button_click(b), bg=BUTTON_BG, fg=BUTTON_FG, font=FONT).grid(row=(i // 4) + 1, column=i % 4, padx=5, pady=5)
-
-tk.Button(root, text="Info", width=7, height=3, command=show_instructions, bg=BUTTON_BG, fg=BUTTON_FG, font=FONT).grid(row=len(buttons) // 4 + 1, column=2, padx=5, pady=5)
-
-tk.Button(root, text="=", width=7, height=3, command=lambda: handle_button_click('='), bg=BUTTON_BG, fg=BUTTON_FG, font=FONT).grid(row=len(buttons) // 4 + 1, column=3, padx=5, pady=5)
 
 root.mainloop()
