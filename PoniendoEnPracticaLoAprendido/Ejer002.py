@@ -6,8 +6,7 @@ contadorMenores = 0
 
 respuesta = input("Hola buenos dias, me podrias pasar 10 numeros enteros? (si/no)\n").lower()
 
-def Contador(respuesta):
-    global contadorCeros, contadorMayores, contadorMenores
+def Contador(respuesta, contadorCeros, contadorMayores, contadorMenores):
     if respuesta == "si":
         print("Perfecto pues pongamonos a ello introduce los numeros a continuacion\n")
 
@@ -23,13 +22,11 @@ def Contador(respuesta):
             except ValueError:
                 print("Por favor, introduce un número entero válido.")
                 return
-    else:
-        print("A vale bueno pues nada adios...")
-    
-    if respuesta == "si":
         print("Gracias por tu colaboracion, los resultados son los siguientes:")
         print(f"Total de ceros introducidos: {contadorCeros}")
         print(f"Total de numeros mayores que 0: {contadorMayores}")
         print(f"Total de numeros menores que 0: {contadorMenores}")
+    else:
+        print("A vale bueno pues nada adios...")
 
-Contador(respuesta)
+Contador(respuesta, contadorCeros, contadorMayores, contadorMenores)
