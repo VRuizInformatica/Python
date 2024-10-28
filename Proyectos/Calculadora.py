@@ -1,5 +1,5 @@
 # Programa que simula una calculadora (En desarrollo)
-
+import os
 import tkinter as tk
 import sqlite3
 con = sqlite3.connect('Historial.db')
@@ -108,8 +108,11 @@ def show_instructions():
 def show_history():
     historial_ventana = tk.Toplevel(root)
     historial_ventana.title("Historial de Operaciones")
+    
+    if not os.path.exists(os.getcwd() + '/DB'):
+        os.mkdir(os.getcwd() + '/DB')
+
     con = sqlite3.connect('Historial.db')
-    cur = con.cursor()
     
     cur.execute("SELECT operacion, resultado FROM historial")
     rows = cur.fetchall()
