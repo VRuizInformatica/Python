@@ -67,6 +67,5 @@ class Algoritmo:
             else:
                 print("Opcion incorrecta")
 
-
 algoritmo = Algoritmo()
 algoritmo.menu()
