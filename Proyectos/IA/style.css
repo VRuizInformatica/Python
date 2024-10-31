@@ -1,0 +1,50 @@
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  padding: 20px;
+  background-color: #e6e6fa; /* Un tono lila claro */
+}
+
+h1 {
+  color: #4b0082; /* Un tono morado oscuro */
+}
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+  max-width: 300px;
+}
+
+label {
+  color: #4b0082; /* Texto morado oscuro */
+}
+
+input, button {
+  margin-bottom: 10px;
+}
+
+button {
+  padding: 10px;
+  background-color: #800080; /* Botón en morado */
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+button:hover {
+  background-color: #660066; /* Color más oscuro al pasar el cursor */
+}
+
+.result {
+  margin-top: 20px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  background-color: #f8f0ff; /* Fondo suave en la sección del resultado */
+  color: #4b0082; /* Texto del resultado en morado oscuro */
+  width: 300px;
+  text-align: center;
+}
