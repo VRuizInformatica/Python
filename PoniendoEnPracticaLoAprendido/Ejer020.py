@@ -74,12 +74,6 @@ if es_escalonada_filas(matriz_no_escalonada):
 else:
     print("La matriz NO es escalonada en filas.")
 
-
-# Definition for singly-linked list.
-# class ListNode(object):
-#     def __init__(self, val=0, next=None):
-#         self.val = val
-#         self.next = next
 class Solution(object):
     def mergeTwoLists(self, list1, list2):
         """
