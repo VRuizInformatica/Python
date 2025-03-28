@@ -31,7 +31,7 @@ if respuesta in listaAcceso:
     # Solicita el segundo número según la operación elegida
     if respuesta == "sumar":
         dos = int(input(f"Que numero desea sumarle a {uno}?\n"))
-    elif respuesta == "restar":
+    elif respuesta == "restar"
         dos = int(input(f"Que numero desea restarle a {uno}?\n"))
     elif respuesta == "multiplicar":
         dos = int(input(f"Por que numero desea multiplicar {uno}?\n"))
