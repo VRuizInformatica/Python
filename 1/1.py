@@ -1,29 +1,36 @@
+# ──────────────────────────  Imports  ──────────────────────────
+from datetime import datetime, timedelta          # date utilities
+import pandas as pd                               # DataFrame handling
+from fastapi import HTTPException, status         # FastAPI errors
+from fastapi.responses import JSONResponse        # JSON responses
+
+
+# ────────────────────  Endpoint: GET /securitization-information  ────────────────────
 @PSummaryRouter.get("/securitization-information")
 async def get_securitization_information():
     """
-    Read the `securitization` table, ensure `payment_type` and
-    `payment_frequency` are coherent, and return:
-        • payment_type  (English only)
-        • Next Payment Date
-        • Cut-Off Date (today)
+    Read the `SECURITIZATION` table, verify that `PAYMENT_TYPE`
+    and `PAYMENT_FREQUENCY` are consistent, and return:
+        • PAYMENT_TYPE        (English label)
+        • Next Payment Date   (dd/MM/yyyy)
+        • Cut-Off Date        (today, dd/MM/yyyy)
     """
 
-    # 1️⃣ Pull only the columns we really need — helper_oracle is unchanged
+    # 1️⃣  Load only the columns we need (helper_oracle signature respected)
     df = helper_oracle.load_data(
-        table_name="securitization",
+        table_name="SECURITIZATION",
         columns=[
-            "sec_id",
-            "first_payment_date",
-            "payment_type",        # assumed to be in English already
-            "payment_frequency",
-            "sch_maturity_date",
+            "SEC_ID",
+            "FIRST_PAYMENT_DATE",
+            "PAYMENT_TYPE",
+            "PAYMENT_FREQUENCY",
+            "SCH_MATURITY_DATE",
         ],
-        mapping=SecuritizationInformationMapping,
     )
 
-    today = datetime.today().date()               # cut-off date for every row
+    today = datetime.today().date()               # common cut-off date
 
-    # payment_type → expected number of days (Balloon handled separately)
+    # PAYMENT_TYPE → expected number of days (Balloon handled separately)
     DAYS_BY_TYPE = {
         "weekly":         7,
         "biweekly":      15,
@@ -32,39 +39,40 @@ async def get_securitization_information():
         "four-monthly": 120,
         "semi-annual":  180,
         "annual":       365,
-        "balloon":       None,
+        "balloon":        None,
     }
 
+    # ─────────────────────  Helper for each row  ─────────────────────
     def _next_payment(row):
         """Validate one row and compute its next payment date."""
-        sec_id   = row["sec_id"]
-        ptype    = str(row["payment_type"]).strip().lower()
+        sec_id = row["SEC_ID"]
+        ptype  = str(row["PAYMENT_TYPE"]).strip().lower()
 
         # -- validation: payment_type must be recognised
         if ptype not in DAYS_BY_TYPE:
-            raise ValueError(f"SEC_ID {sec_id}: unknown payment_type '{row['payment_type']}'")
+            raise ValueError(f"SEC_ID {sec_id}: unknown PAYMENT_TYPE '{row['PAYMENT_TYPE']}'")
 
         expected_days = DAYS_BY_TYPE[ptype]
 
-        # -- Balloon: simply return the maturity date
+        # -- Balloon: simply return maturity date
         if ptype == "balloon":
-            maturity = row["sch_maturity_date"]
+            maturity = row["SCH_MATURITY_DATE"]
             # -- validation: maturity date must exist
             if pd.isna(maturity):
-                raise ValueError(f"SEC_ID {sec_id}: sch_maturity_date is NULL for Balloon")
+                raise ValueError(f"SEC_ID {sec_id}: SCH_MATURITY_DATE is NULL for Balloon")
             return maturity.strftime("%d/%m/%Y")
 
-        # -- validation: numeric frequency must match the expected value
-        freq = row["payment_frequency"]
+        # -- validation: numeric frequency must match expected days
+        freq = row["PAYMENT_FREQUENCY"]
         if pd.isna(freq) or int(freq) != expected_days:
             raise ValueError(
-                f"SEC_ID {sec_id}: payment_frequency={freq} ≠ {expected_days} days for '{ptype.title()}'"
+                f"SEC_ID {sec_id}: PAYMENT_FREQUENCY={freq} ≠ {expected_days} days for '{ptype.title()}'"
             )
 
-        # -- validation: first_payment_date must not be null
-        first = row["first_payment_date"]
+        # -- validation: FIRST_PAYMENT_DATE must exist
+        first = row["FIRST_PAYMENT_DATE"]
         if pd.isna(first):
-            raise ValueError(f"SEC_ID {sec_id}: first_payment_date is NULL")
+            raise ValueError(f"SEC_ID {sec_id}: FIRST_PAYMENT_DATE is NULL")
 
         # compute the first payment date strictly after today
         next_date = first
@@ -72,7 +80,7 @@ async def get_securitization_information():
             next_date += timedelta(days=expected_days)
         return next_date.strftime("%d/%m/%Y")
 
-    # 2️⃣ Apply the calculation and turn any incoherence into HTTP 422
+    # 2️⃣  Apply the calculation; any inconsistency ➜ HTTP 422
     try:
         df["Next Payment Date"] = df.apply(_next_payment, axis=1)
     except ValueError as exc:
@@ -81,8 +89,8 @@ async def get_securitization_information():
             detail=str(exc),
         )
 
-    # 3️⃣ Add the cut-off date column (identical for every row)
+    # 3️⃣  Add the cut-off date column (same value for every row)
     df["Cut-Off Date"] = today.strftime("%d/%m/%Y")
 
-    # 4️⃣ Return the DataFrame as a list of dicts
+    # 4️⃣  Return the DataFrame as JSON
     return JSONResponse(content=df.to_dict(orient="records"))
