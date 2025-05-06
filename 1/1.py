@@ -1,90 +1,88 @@
 @PSummaryRouter.get("/securitization-information")
 async def get_securitization_information():
     """
-    Lee la tabla SECURITIZATION y devuelve, para cada titulización,
-    la fecha del próximo pago (‘Next Payment Date’) y la fecha de corte
-    (‘Cut-Off Date’).  
-    • “Next Payment Date” se calcula en función de FIRST_PAYMENT_DATE,
-    PAYMENT_TYPE y PAYMENT_FREQUENCY.  
-    • Si PAYMENT_TYPE = 'Balloon' devolvemos SCH_MATURITY_DATE.  
-    • Si PAYMENT_FREQUENCY no coincide con el tipo, devolvemos 400.
+    Read the `securitization` table, ensure `payment_type` and
+    `payment_frequency` are coherent, and return:
+        • payment_type  (English only)
+        • Next Payment Date
+        • Cut-Off Date (today)
     """
 
-    # 1️⃣ Leer los datos que realmente necesitamos
+    # 1️⃣ Pull only the columns we really need — helper_oracle is unchanged
     df = helper_oracle.load_data(
-        """
-        SELECT
-            SEC_ID,
-            FIRST_PAYMENT_DATE,
-            PAYMENT_TYPE,
-            PAYMENT_FREQUENCY,
-            SCH_MATURITY_DATE
-        FROM   SECURITIZATION
-        """,
-        as_dataframe=True,
+        table_name="securitization",
+        columns=[
+            "sec_id",
+            "first_payment_date",
+            "payment_type",        # assumed to be in English already
+            "payment_frequency",
+            "sch_maturity_date",
+        ],
+        mapping=SecuritizationInformationMapping,
     )
 
-    # 2️⃣ Fecha de corte (hoy) en formato dd/MM/yyyy
-    today_date     = datetime.today().date()
-    today_str      = today_date.strftime("%d/%m/%Y")
+    today = datetime.today().date()               # cut-off date for every row
 
-    # 3️⃣ Equivalencia: tipo de pago → número fijo de días
-    TYPE_TO_DAYS = {
-        "semanal":        7,
-        "quincenal":     15,
-        "mensual":       30,
-        "trimestral":    90,
-        "cuatrimestral":120,
-        "semestral":    180,
-        "anual":        365,
-        # 'balloon' se controla aparte
+    # payment_type → expected number of days (Balloon handled separately)
+    DAYS_BY_TYPE = {
+        "weekly":         7,
+        "biweekly":      15,
+        "monthly":       30,
+        "quarterly":     90,
+        "four-monthly": 120,
+        "semi-annual":  180,
+        "annual":       365,
+        "balloon":       None,
     }
 
-    # 4️⃣ Función que calcula el próximo pago para una fila
-    def _calc_next_payment(row):
-        sec_id = row["SEC_ID"]                         # para mensajes de error
-        ptype  = str(row["PAYMENT_TYPE"]).strip().lower()
-        freq   = row["PAYMENT_FREQUENCY"]
+    def _next_payment(row):
+        """Validate one row and compute its next payment date."""
+        sec_id   = row["sec_id"]
+        ptype    = str(row["payment_type"]).strip().lower()
 
-        # Caso especial: Balloon → usar la fecha de madurez tal cual
+        # -- validation: payment_type must be recognised
+        if ptype not in DAYS_BY_TYPE:
+            raise ValueError(f"SEC_ID {sec_id}: unknown payment_type '{row['payment_type']}'")
+
+        expected_days = DAYS_BY_TYPE[ptype]
+
+        # -- Balloon: simply return the maturity date
         if ptype == "balloon":
-            maturity = row["SCH_MATURITY_DATE"]
+            maturity = row["sch_maturity_date"]
+            # -- validation: maturity date must exist
             if pd.isna(maturity):
-                raise ValueError(f"SEC_ID {sec_id}: SCH_MATURITY_DATE vacío")
+                raise ValueError(f"SEC_ID {sec_id}: sch_maturity_date is NULL for Balloon")
             return maturity.strftime("%d/%m/%Y")
 
-        # 4.a Validar que conocemos el tipo
-        if ptype not in TYPE_TO_DAYS:
-            raise ValueError(f"SEC_ID {sec_id}: PAYMENT_TYPE desconocido «{row['PAYMENT_TYPE']}»")
-
-        expected_days = TYPE_TO_DAYS[ptype]
-
-        # 4.b Validar coincidencia tipo ↔ frecuencia
+        # -- validation: numeric frequency must match the expected value
+        freq = row["payment_frequency"]
         if pd.isna(freq) or int(freq) != expected_days:
             raise ValueError(
-                f"SEC_ID {sec_id}: PAYMENT_FREQUENCY={freq} (no coincide con {expected_days} días para «{row['PAYMENT_TYPE']}»)"
+                f"SEC_ID {sec_id}: payment_frequency={freq} ≠ {expected_days} days for '{ptype.title()}'"
             )
 
-        # 4.c Calcular siguiente fecha a partir del primer pago
-        first = row["FIRST_PAYMENT_DATE"]
+        # -- validation: first_payment_date must not be null
+        first = row["first_payment_date"]
         if pd.isna(first):
-            raise ValueError(f"SEC_ID {sec_id}: FIRST_PAYMENT_DATE vacío")
+            raise ValueError(f"SEC_ID {sec_id}: first_payment_date is NULL")
 
+        # compute the first payment date strictly after today
         next_date = first
-        while next_date <= today_date:
+        while next_date <= today:
             next_date += timedelta(days=expected_days)
+        return next_date.strftime("%d/%m/%Y")
 
-        return next_date.strftime("%d/%m/%Y")          # dd/MM/yyyy
-
-    # 5️⃣ Aplicar el cálculo con control de errores profesionales
+    # 2️⃣ Apply the calculation and turn any incoherence into HTTP 422
     try:
-        df["Next Payment Date"] = df.apply(_calc_next_payment, axis=1)
+        df["Next Payment Date"] = df.apply(_next_payment, axis=1)
     except ValueError as exc:
-        # Cualquier incoherencia devuelve 400 con mensaje claro
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        )
 
-    # 6️⃣ Añadir la fecha de corte (igual para todas las filas)
-    df["Cut-Off Date"] = today_str
+    # 3️⃣ Add the cut-off date column (identical for every row)
+    df["Cut-Off Date"] = today.strftime("%d/%m/%Y")
 
-    # 7️⃣ DataFrame → lista de diccionarios y enviar como JSON
+    # 4️⃣ Return the DataFrame as a list of dicts
     return JSONResponse(content=df.to_dict(orient="records"))
