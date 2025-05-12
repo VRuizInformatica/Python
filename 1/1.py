@@ -1,30 +1,63 @@
-/*  ▸ Actualiza 50 filas aleatorias en CONTRACTS
-    ▸ Asigna fechas consecutivas 01-feb-25 → 22-mar-25
-    ▸ Mantiene la parte hora (si existiese)
-    ▸ Incluye SAVEPOINT para poder ROLLBACK
-*/
-DECLARE
-    v_base_date   DATE := TO_DATE('01/02/25', 'DD/MM/YY');   -- primer día de la serie
-    SAVEPOINT sp_before_update;
+/* ===================== CONFIG ===================== */
+DEFINE SCHEMA = DELASSMVP        -- ← tu esquema (en mayúsculas)
+DEFINE OUTDIR = Titulizacion2025 -- ← carpeta local para los ficheros
+/* ================================================== */
 
-    CURSOR c IS
-        SELECT rowid                      AS rid,
-               data_cut_off_date          AS old_dt,
-               ROW_NUMBER() OVER (ORDER BY DBMS_RANDOM.VALUE) AS rn
-        FROM   contracts
-        WHERE  ROWNUM <= 50;  -- 50 filas al azar (sin orden definido)
-BEGIN
-    FOR rec IN c LOOP
-        UPDATE contracts
-           SET data_cut_off_date =
-                 /* parte fecha nueva */ (v_base_date + rec.rn-1)
-                 /* + parte hora original (si la hubiese) */
-                 + (rec.old_dt - TRUNC(rec.old_dt))
-         WHERE rowid = rec.rid;
-    END LOOP;
+/* Limpio la salida para que el spool sea legible */
+SET TERMOUT OFF
+SET HEADING ON
+SET PAGESIZE 500
+SET LINESIZE 200
+COLUMN owner           FORMAT A15
+COLUMN table_name      FORMAT A30
+COLUMN column_name     FORMAT A30
+COLUMN constraint_name FORMAT A30
+COLUMN index_name      FORMAT A30
+COLUMN trigger_name    FORMAT A30
+COLUMN name            FORMAT A30
+COLUMN type            FORMAT A12
+COLUMN referenced_name FORMAT A30
 
-    --*** REVISAR RESULTADOS ANTES DE CONFIRMAR ***--
-    -- COMMIT;                 -- ← quita el comentario cuando estés seguro
-    -- ROLLBACK TO sp_before_update;  -- ← o usa esto para deshacer
-END;
-/
+SPOOL &&OUTDIR./client_inventory_&&SCHEMA..lst
+
+PROMPT === COLUMNAS QUE CONTIENEN “CLIENT” ============================
+SELECT owner, table_name, column_name
+FROM   all_tab_columns
+WHERE  owner = '&&SCHEMA'
+  AND  column_name LIKE '%CLIENT%'
+ORDER  BY table_name, column_name;
+
+PROMPT === CONSTRAINTS (PK, FK, CHECK…) ===============================
+SELECT owner, constraint_name, table_name, constraint_type
+FROM   all_constraints
+WHERE  owner = '&&SCHEMA'
+  AND  (   constraint_name  LIKE '%CLIENT%'
+       OR r_constraint_name LIKE '%CLIENT%');
+
+PROMPT === ÍNDICES ====================================================
+SELECT owner, index_name, table_name
+FROM   all_indexes
+WHERE  owner = '&&SCHEMA'
+  AND  index_name LIKE '%CLIENT%';
+
+PROMPT === SECUENCIAS =================================================
+SELECT sequence_owner AS owner, sequence_name
+FROM   all_sequences
+WHERE  sequence_owner = '&&SCHEMA'
+  AND  sequence_name   LIKE '%CLIENT%';
+
+PROMPT === TRIGGERS ===================================================
+SELECT owner, trigger_name, table_name
+FROM   all_triggers
+WHERE  owner = '&&SCHEMA'
+  AND  (trigger_name LIKE '%CLIENT%' OR table_name LIKE '%CLIENT%');
+
+PROMPT === DEPENDENCIAS (VISTAS / PL-SQL) =============================
+SELECT owner, name, type, referenced_name, referenced_type
+FROM   all_dependencies
+WHERE  referenced_owner = '&&SCHEMA'
+  AND   referenced_name LIKE '%CLIENT%';
+
+SPOOL OFF
+SET TERMOUT ON
+PROMPT === Inventario generado en &&OUTDIR./client_inventory_&&SCHEMA..lst ===
