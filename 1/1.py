@@ -1,55 +1,60 @@
-/* ----- formato de salida ----- */
+/* ------------- CONFIGURACIÓN DE SALIDA ------------- */
 SET TERMOUT OFF
 SET HEADING ON
 SET PAGESIZE 500
 SET LINESIZE 200
+COLUMN owner           FORMAT A15
+COLUMN table_name      FORMAT A30
+COLUMN column_name     FORMAT A30
+COLUMN constraint_name FORMAT A30
+COLUMN index_name      FORMAT A30
+COLUMN trigger_name    FORMAT A30
+COLUMN name            FORMAT A30
+COLUMN type            FORMAT A12
+COLUMN referenced_name FORMAT A30
 
-/* ----- inicia spool ----- */
-SPOOL C:/SPOOLTEST/client_inventory_DELASSMVP.lst
+/* ------------- INICIO DEL SPOOL ------------- */
+SPOOL C:/SPOOLTEST/client_references.lst
 
-/* columnas que contienen CLIENT */
-PROMPT === COLUMNAS ==============================================
+PROMPT === COLUMNAS ==================================================
 SELECT owner, table_name, column_name
 FROM   all_tab_columns
-WHERE  owner = 'DELASSMVP'
-  AND  column_name LIKE '%CLIENT%';
+WHERE  column_name LIKE '%CLIENT%'
+ORDER  BY owner, table_name, column_name;
 
-/* constraints */
-PROMPT === CONSTRAINTS ===========================================
+PROMPT === CONSTRAINTS (PK, FK, CHECK…) =============================
 SELECT owner, constraint_name, table_name, constraint_type
 FROM   all_constraints
-WHERE  owner = 'DELASSMVP'
-  AND ( constraint_name LIKE '%CLIENT%' OR r_constraint_name LIKE '%CLIENT%' );
+WHERE  constraint_name LIKE '%CLIENT%'
+   OR  r_constraint_name LIKE '%CLIENT%'
+ORDER  BY owner, table_name, constraint_name;
 
-/* índices */
-PROMPT === ÍNDICES ===============================================
+PROMPT === ÍNDICES ==================================================
 SELECT owner, index_name, table_name
 FROM   all_indexes
-WHERE  owner = 'DELASSMVP'
-  AND  index_name LIKE '%CLIENT%';
+WHERE  index_name LIKE '%CLIENT%'
+ORDER  BY owner, table_name, index_name;
 
-/* secuencias */
-PROMPT === SECUENCIAS ============================================
+PROMPT === SECUENCIAS ===============================================
 SELECT sequence_owner AS owner, sequence_name
 FROM   all_sequences
-WHERE  sequence_owner = 'DELASSMVP'
-  AND  sequence_name   LIKE '%CLIENT%';
+WHERE  sequence_name LIKE '%CLIENT%'
+ORDER  BY owner, sequence_name;
 
-/* triggers */
-PROMPT === TRIGGERS ==============================================
+PROMPT === TRIGGERS =================================================
 SELECT owner, trigger_name, table_name
 FROM   all_triggers
-WHERE  owner = 'DELASSMVP'
-  AND ( trigger_name LIKE '%CLIENT%' OR table_name LIKE '%CLIENT%' );
+WHERE  trigger_name LIKE '%CLIENT%'
+   OR  table_name   LIKE '%CLIENT%'
+ORDER  BY owner, trigger_name;
 
-/* dependencias de código */
-PROMPT === DEPENDENCIAS (vistas / PL-SQL) ========================
+PROMPT === DEPENDENCIAS (vistas / PL-SQL) ===========================
 SELECT owner, name, type, referenced_name, referenced_type
 FROM   all_dependencies
-WHERE  referenced_owner = 'DELASSMVP'
-  AND   referenced_name LIKE '%CLIENT%';
+WHERE  referenced_name LIKE '%CLIENT%'
+ORDER  BY owner, name, referenced_name;
 
-/* ----- cierra spool ----- */
+/* ------------- FIN DEL SPOOL ------------- */
 SPOOL OFF
 SET TERMOUT ON
-PROMPT === Inventario creado en  C:\SPOOLTEST\client_inventory_DELASSMVP.lst  ===
+PROMPT === Inventario completo creado en  C:\SPOOLTEST\client_references.lst  ===
