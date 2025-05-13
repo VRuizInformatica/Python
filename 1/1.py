@@ -1,5 +1,7 @@
--- Sustituye BORROWER por el nombre real de la tabla que quieras revisar
-SELECT column_name
-FROM   user_tab_columns
-WHERE  table_name = 'BORROWER'       -- en mayúsculas
-  AND  column_name LIKE '%CLIENT%';
+getMaxCutOffDate(): Observable<string> {
+  return this.http
+    .get<{ data: { DATA_CUT_OFF_DATE: string }[] }>(
+      `${this.baseUrl}/securitized-assets?page=1&take=1`
+    )
+    .pipe(map(r => r.data[0]?.DATA_CUT_OFF_DATE ?? ''));
+}
