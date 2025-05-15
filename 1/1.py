@@ -1,11 +1,9 @@
-# ────────────────────────────────────────────────────────────────────────────────
-# Datos transversales
-# ────────────────────────────────────────────────────────────────────────────────
-@PManagementRouter.get("/general-data", tags=["general"])
-async def get_general_data():
-    """Devuelve la fecha de corte más reciente para toda la herramienta."""
-    row = helper_oracle.load_data(
-        "CONTRACT",
-        columns=["MAX(DATA_CUT_OFF_DATE) AS last_reference_date"]
-    )[0]
-    return { "last_reference_date": row["last_reference_date"] }
+# KeepAwake.ps1  ─ mueve el ratón 1 px cada 4 min
+Add-Type -AssemblyName System.Windows.Forms
+while ($true) {
+    $pos = [System.Windows.Forms.Cursor]::Position
+    [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point($pos.X + 1, $pos.Y)
+    Start-Sleep -Milliseconds 50
+    [System.Windows.Forms.Cursor]::Position = $pos        # vuelve al punto original
+    Start-Sleep -Seconds 240                               # 4 min
+}
