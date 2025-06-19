@@ -32,55 +32,65 @@ def main():
         
         print("Conectando a Oracle...")
         try:
-            # Opción 1: Usando makedsn
-            dsn = oracledb.makedsn(HOST, PORT, service_name=SERVICE_NAME)
-            connection = oracledb.connect(user=USERNAME, password=PASSWORD, dsn=dsn)
+            connection = oracledb.connect(
+                user=USERNAME,
+                password=PASSWORD,
+                host=HOST,
+                port=int(PORT),
+                service_name=SERVICE_NAME  # Cambiado de 'sid' a 'service_name'
+            )
         except Exception as e:
             print(f"Error de conexión: {e}")
-            # Opción 2: DSN string manual
-            dsn_string = f"(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={HOST})(PORT={PORT}))(CONNECT_DATA=(SERVICE_NAME={SERVICE_NAME})))"
-            connection = oracledb.connect(user=USERNAME, password=PASSWORD, dsn=dsn_string)
+            print("Intentando con formato DSN...")
+            dsn = oracledb.makedsn(HOST, PORT, service_name=SERVICE_NAME)
+            connection = oracledb.connect(user=USERNAME, password=PASSWORD, dsn=dsn)
         
         cursor = connection.cursor()
         
-        # Crear la sentencia MERGE correctamente
+        # AQUÍ ESTÁ LA CORRECCIÓN CLAVE
+        # Crear los placeholders con alias para el USING
         placeholders = ', '.join([f':{i+1}' for i in range(len(column_list))])
         column_names = ', '.join(column_list)
-        column_aliases = ', '.join([f':{i+1} as {col}' for i, col in enumerate(column_list)])
         
+        # Crear la parte del SELECT con alias de columnas
+        select_list = ', '.join([f':{i+1} as {col}' for i, col in enumerate(column_list)])
+        
+        # SQL corregido - nota cómo ahora s.USER_ID se refiere al alias de columna, no al bind parameter
         sql = f"""MERGE INTO {TABLE_NAME} t 
-                  USING (SELECT {column_aliases} FROM dual) s 
+                  USING (SELECT {select_list} FROM dual) s 
                   ON (t.USER_ID = s.USER_ID) 
                   WHEN NOT MATCHED THEN 
                   INSERT ({column_names}) VALUES ({placeholders})"""
         
-        print("Insertando datos...")
-        inserted = 0
-        duplicated = 0
+        print("SQL generado:")
+        print(sql)
+        print("\nInsertando datos...")
         
+        inserted = 0
         for index, row in df.iterrows():
             try:
                 values = [None if pd.isna(val) else val for val in row.values]
                 cursor.execute(sql, values)
                 inserted += 1
-                if (index + 1) % 100 == 0:
-                    print(f"Procesadas {index + 1} filas...")
+                if (index + 1) % 50 == 0:
+                    print(f"  Procesadas {index + 1} filas...")
             except Exception as e:
                 if "ORA-00001" in str(e):
-                    duplicated += 1
+                    print(f"Fila {index + 1}: Registro duplicado, saltando...")
                 else:
                     print(f"Error en fila {index + 1}: {e}")
+                    # Si hay error, mostrar los valores para debug
+                    if index < 3:  # Solo mostrar los primeros 3 errores con detalle
+                        print(f"  Valores: {values}")
         
         connection.commit()
         cursor.close()
         connection.close()
         
-        print(f"\n¡Completado!")
-        print(f"Insertadas: {inserted} filas")
-        print(f"Duplicadas (omitidas): {duplicated} filas")
+        print(f"\n¡Completado! Insertadas {inserted} filas de {len(df)} totales")
         
     except Exception as e:
-        print(f"Error general: {e}")
+        print(f"Error: {e}")
         import traceback
         traceback.print_exc()
 
