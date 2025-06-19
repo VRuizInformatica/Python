@@ -5,7 +5,7 @@ USERNAME = 'DEIASSMVP'
 PASSWORD = 'Kp51xVic'
 HOST = '107.104.192.121'
 PORT = '60493'
-SERVICE_NAME = 'odis1ass'
+SID = 'odis1ass'  # Cambiado de SERVICE_NAME a SID
 EXCEL_FILE = 'C:/Users/x919989/SOURCES/ScriptVictorRuiz/Excels/ACC_USERS_REGISTERED 1.xlsx'
 TABLE_NAME = 'ACC_USERS_REGISTERED'
 COLUMNS = ['USER_ID', 'USER_NAME', 'USER_SURNAME', 'ACTIVE']
@@ -31,42 +31,54 @@ def main():
             print(f"Filas después de filtrar: {len(df)}")
         
         print("Conectando a Oracle...")
+        
+        # CORRECCIÓN 1: Usar SID en lugar de service_name
         try:
-            connection = oracledb.connect(
-                user=USERNAME,
-                password=PASSWORD,
-                host=HOST,
-                port=int(PORT),
-                service_name=SERVICE_NAME  # Cambiado de 'sid' a 'service_name'
-            )
-        except Exception as e:
-            print(f"Error de conexión: {e}")
-            print("Intentando con formato DSN...")
-            dsn = oracledb.makedsn(HOST, PORT, service_name=SERVICE_NAME)
+            # Método 1: makedsn con SID
+            dsn = oracledb.makedsn(HOST, PORT, sid=SID)  # sid= en lugar de service_name=
             connection = oracledb.connect(user=USERNAME, password=PASSWORD, dsn=dsn)
+            print("✓ Conectado exitosamente usando SID")
+        except Exception as e:
+            print(f"Error con makedsn: {e}")
+            try:
+                # Método 2: DSN string manual con SID
+                dsn_string = f"(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={HOST})(PORT={PORT}))(CONNECT_DATA=(SID={SID})))"
+                connection = oracledb.connect(user=USERNAME, password=PASSWORD, dsn=dsn_string)
+                print("✓ Conectado exitosamente usando DSN string con SID")
+            except Exception as e2:
+                print(f"Error con DSN string: {e2}")
+                # Método 3: Formato directo
+                connection = oracledb.connect(f"{USERNAME}/{PASSWORD}@{HOST}:{PORT}:{SID}")
+                print("✓ Conectado exitosamente usando formato directo")
         
         cursor = connection.cursor()
         
-        # AQUÍ ESTÁ LA CORRECCIÓN CLAVE
-        # Crear los placeholders con alias para el USING
+        # Verificar conexión
+        cursor.execute("SELECT USER FROM DUAL")
+        print(f"Conectado como: {cursor.fetchone()[0]}")
+        
+        # CORRECCIÓN 2: Sintaxis correcta del MERGE
         placeholders = ', '.join([f':{i+1}' for i in range(len(column_list))])
         column_names = ', '.join(column_list)
         
         # Crear la parte del SELECT con alias de columnas
         select_list = ', '.join([f':{i+1} as {col}' for i, col in enumerate(column_list)])
         
-        # SQL corregido - nota cómo ahora s.USER_ID se refiere al alias de columna, no al bind parameter
+        # SQL con sintaxis correcta
         sql = f"""MERGE INTO {TABLE_NAME} t 
                   USING (SELECT {select_list} FROM dual) s 
                   ON (t.USER_ID = s.USER_ID) 
                   WHEN NOT MATCHED THEN 
                   INSERT ({column_names}) VALUES ({placeholders})"""
         
-        print("SQL generado:")
+        print("\nSQL a ejecutar:")
         print(sql)
         print("\nInsertando datos...")
         
         inserted = 0
+        duplicated = 0
+        errors = 0
+        
         for index, row in df.iterrows():
             try:
                 values = [None if pd.isna(val) else val for val in row.values]
@@ -74,23 +86,31 @@ def main():
                 inserted += 1
                 if (index + 1) % 50 == 0:
                     print(f"  Procesadas {index + 1} filas...")
-            except Exception as e:
-                if "ORA-00001" in str(e):
-                    print(f"Fila {index + 1}: Registro duplicado, saltando...")
+            except oracledb.Error as e:
+                error, = e.args
+                if error.code == 1:  # ORA-00001: unique constraint violated
+                    duplicated += 1
                 else:
-                    print(f"Error en fila {index + 1}: {e}")
-                    # Si hay error, mostrar los valores para debug
-                    if index < 3:  # Solo mostrar los primeros 3 errores con detalle
+                    errors += 1
+                    if errors <= 3:  # Mostrar solo los primeros 3 errores
+                        print(f"Error en fila {index + 1}: {error.message}")
                         print(f"  Valores: {values}")
+            except Exception as e:
+                errors += 1
+                print(f"Error inesperado en fila {index + 1}: {e}")
         
         connection.commit()
         cursor.close()
         connection.close()
         
-        print(f"\n¡Completado! Insertadas {inserted} filas de {len(df)} totales")
+        print(f"\n=== RESUMEN ===")
+        print(f"✓ Insertadas: {inserted} filas")
+        print(f"⚠ Duplicadas: {duplicated} filas")
+        print(f"✗ Errores: {errors} filas")
+        print(f"Total procesadas: {inserted + duplicated + errors} de {len(df)}")
         
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"\nError general: {e}")
         import traceback
         traceback.print_exc()
 
