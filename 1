@@ -1,17 +1,14 @@
 import pandas as pd
-import cx_Oracle as oracledb
+import oracledb
 
 USERNAME = 'DEIASSMVP'
 PASSWORD = 'Kp51xVic'
 HOST = '107.104.192.121'
 PORT = '60493'
 SERVICE_NAME = 'odis1ass'
-
 EXCEL_FILE = 'C:/Users/x919989/SOURCES/ScriptVictorRuiz/Excels/ACC_USERS_REGISTERED 1.xlsx'
 TABLE_NAME = 'ACC_USERS_REGISTERED'
-
 COLUMNS = ['USER_ID', 'USER_NAME', 'USER_SURNAME', 'ACTIVE']
-
 EXCLUDE_COLUMN = None
 EXCLUDE_VALUES = None
 
@@ -34,24 +31,43 @@ def main():
             print(f"Filas después de filtrar: {len(df)}")
         
         print("Conectando a Oracle...")
-        dsn = oracledb.makedsn(HOST, PORT, sid=SERVICE_NAME)
-        connection = oracledb.connect(user=USERNAME, password=PASSWORD, dsn=dsn)
+        try:
+            # Opción 1: Usando makedsn
+            dsn = oracledb.makedsn(HOST, PORT, service_name=SERVICE_NAME)
+            connection = oracledb.connect(user=USERNAME, password=PASSWORD, dsn=dsn)
+        except Exception as e:
+            print(f"Error de conexión: {e}")
+            # Opción 2: DSN string manual
+            dsn_string = f"(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={HOST})(PORT={PORT}))(CONNECT_DATA=(SERVICE_NAME={SERVICE_NAME})))"
+            connection = oracledb.connect(user=USERNAME, password=PASSWORD, dsn=dsn_string)
+        
         cursor = connection.cursor()
         
+        # Crear la sentencia MERGE correctamente
         placeholders = ', '.join([f':{i+1}' for i in range(len(column_list))])
         column_names = ', '.join(column_list)
-        sql = f"MERGE INTO {TABLE_NAME} t USING (SELECT {placeholders} FROM dual) s ON (t.USER_ID = s.:1) WHEN NOT MATCHED THEN INSERT ({column_names}) VALUES ({placeholders})"
+        column_aliases = ', '.join([f':{i+1} as {col}' for i, col in enumerate(column_list)])
+        
+        sql = f"""MERGE INTO {TABLE_NAME} t 
+                  USING (SELECT {column_aliases} FROM dual) s 
+                  ON (t.USER_ID = s.USER_ID) 
+                  WHEN NOT MATCHED THEN 
+                  INSERT ({column_names}) VALUES ({placeholders})"""
         
         print("Insertando datos...")
         inserted = 0
+        duplicated = 0
+        
         for index, row in df.iterrows():
             try:
                 values = [None if pd.isna(val) else val for val in row.values]
                 cursor.execute(sql, values)
                 inserted += 1
+                if (index + 1) % 100 == 0:
+                    print(f"Procesadas {index + 1} filas...")
             except Exception as e:
                 if "ORA-00001" in str(e):
-                    print(f"Fila {index + 1}: Registro duplicado, saltando...")
+                    duplicated += 1
                 else:
                     print(f"Error en fila {index + 1}: {e}")
         
@@ -59,10 +75,14 @@ def main():
         cursor.close()
         connection.close()
         
-        print(f"¡Completado! Insertadas {inserted} filas")
+        print(f"\n¡Completado!")
+        print(f"Insertadas: {inserted} filas")
+        print(f"Duplicadas (omitidas): {duplicated} filas")
         
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error general: {e}")
+        import traceback
+        traceback.print_exc()
 
 if __name__ == "__main__":
     main()
