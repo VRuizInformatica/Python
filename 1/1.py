@@ -40,7 +40,7 @@ def main():
         
         placeholders = ', '.join([f':{i+1}' for i in range(len(column_list))])
         column_names = ', '.join(column_list)
-        sql = f"INSERT /*+ IGNORE_ROW_ON_DUPKEY_INDEX */ INTO {TABLE_NAME} ({column_names}) VALUES ({placeholders})"
+        sql = f"MERGE INTO {TABLE_NAME} t USING (SELECT {placeholders} FROM dual) s ON (t.USER_ID = s.:1) WHEN NOT MATCHED THEN INSERT ({column_names}) VALUES ({placeholders})"
         
         print("Insertando datos...")
         inserted = 0
